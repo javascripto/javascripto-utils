@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { formatCNPJ } from './format-cnpj';
+import { formatCNPJ, parseCNPJ } from './format-cnpj';
 
 describe('formatCNPJ', () => {
   test('should return an empty string if input is empty', () => {
@@ -34,5 +34,11 @@ describe('formatCNPJ', () => {
   test('should handle null and undefined values', () => {
     expect(formatCNPJ(null)).toBe('');
     expect(formatCNPJ(undefined)).toBe('');
+  });
+
+  test('should parse a CNPJ correctly', () => {
+    expect(parseCNPJ('12.345.678/0001-95')).toBe('12345678000195');
+    expect(parseCNPJ(null)).toBe('');
+    expect(parseCNPJ(undefined)).toBe('');
   });
 });

@@ -1,3 +1,6 @@
+import type { StringInput } from '../types';
+import { normalizeStringInput } from './normalize-string-input';
+
 type EmptyString = '';
 type EmailString = `${string}@${string}`;
 type WrongDomain = string;
@@ -15,8 +18,10 @@ export enum EmailDomains {
 const wrongEmailDomainsRecord: Record<WrongDomain, EmailDomains> =
   getWrongEmailDomainsRecord();
 
-export function suggestEmail(typedEmail = ''): EmptyString | EmailString {
-  const [user, domain] = typedEmail.split('@');
+export function suggestEmail(
+  typedEmail: StringInput = '',
+): EmptyString | EmailString {
+  const [user, domain] = normalizeStringInput(typedEmail).split('@');
   const correctDomain = domain ? wrongEmailDomainsRecord[domain] : undefined;
   return correctDomain ? `${user}@${correctDomain}` : '';
 }

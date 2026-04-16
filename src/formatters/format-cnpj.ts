@@ -1,10 +1,10 @@
+import type { StringInput } from '../types';
 import { keepOnlyDigits } from './keep-only-digits';
 
 export const CNPJ_PLACEHOLDER = '00.000.000/0000-00';
 export const CNPJ_DIGITS_LENGTH = 14;
 
-export function formatCNPJ(value: string | null = ''): string {
-  if (value === null) return '';
+export function formatCNPJ(value: StringInput = ''): string {
   return keepOnlyDigits(value)
     .replace(/(\d{2})(\d)/, '$1.$2')
     .replace(/(\d{3})(\d)/, '$1.$2')
@@ -13,5 +13,5 @@ export function formatCNPJ(value: string | null = ''): string {
     .replace(/(-\d{2})\d+?$/, '$1');
 }
 
-export const parseCNPJ = (value = ''): string =>
+export const parseCNPJ = (value: StringInput = ''): string =>
   keepOnlyDigits(value).substring(0, CNPJ_DIGITS_LENGTH);

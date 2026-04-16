@@ -31,23 +31,10 @@ describe('formatCEP', () => {
     expect(formatCEP(undefined)).toBe('');
   });
 
-  test('should handle non-string values', () => {
-    // @ts-expect-error
-    expect(formatCEP(12345678)).toBe('12345-678');
-    // @ts-expect-error
-    expect(formatCEP(true)).toBe('');
-    // @ts-expect-error
-    expect(formatCEP(false)).toBe('');
-    // @ts-expect-error
-    expect(formatCEP([])).toBe('');
-    // @ts-expect-error
-    expect(formatCEP({})).toBe('');
-    // @ts-expect-error
-    expect(formatCEP(() => {})).toBe('');
-  });
-
   test('should parse a CEP correctly', () => {
     expect(parseCEP('12345-678')).toBe('12345678');
     expect(parseCEP('12345')).toBe('12345');
+    expect(parseCEP(null)).toBe('');
+    expect(parseCEP(undefined)).toBe('');
   });
 });

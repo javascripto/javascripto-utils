@@ -36,5 +36,7 @@ describe('formatCPF', () => {
   test('should parse a CPF correctly', () => {
     expect(parseCPF('123.456.789-01')).toBe('12345678901');
     expect(parseCPF('123')).toBe('123');
+    expect(parseCPF(null)).toBe('');
+    expect(parseCPF(undefined)).toBe('');
   });
 });
