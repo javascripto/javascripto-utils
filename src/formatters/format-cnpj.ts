@@ -1,7 +1,7 @@
 import { keepOnlyDigits } from './keep-only-digits';
 
 export const CNPJ_PLACEHOLDER = '00.000.000/0000-00';
-export const CNPJ_DIGTIS_LENGTH = 14;
+export const CNPJ_DIGITS_LENGTH = 14;
 
 export function formatCNPJ(value: string | null = ''): string {
   if (value === null) return '';
@@ -14,4 +14,4 @@ export function formatCNPJ(value: string | null = ''): string {
 }
 
 export const parseCNPJ = (value = ''): string =>
-  keepOnlyDigits(value).substring(0, CNPJ_DIGTIS_LENGTH);
+  keepOnlyDigits(value).substring(0, CNPJ_DIGITS_LENGTH);

@@ -1,7 +1,7 @@
 import { keepOnlyDigits } from './keep-only-digits';
 
 export const CPF_PLACEHOLDER = '000.000.000-00';
-export const CPF_DIGTIS_LENGTH = 11;
+export const CPF_DIGITS_LENGTH = 11;
 
 export function formatCPF(value: string | null = ''): string {
   if (value === null) return '';
@@ -13,4 +13,4 @@ export function formatCPF(value: string | null = ''): string {
 }
 
 export const parseCPF = (value = ''): string =>
-  keepOnlyDigits(value).substring(0, CPF_DIGTIS_LENGTH);
+  keepOnlyDigits(value).substring(0, CPF_DIGITS_LENGTH);
