@@ -1,6 +1,7 @@
 import { keepOnlyDigits } from './keep-only-digits';
 
-export function formatRG(value = ''): string {
+export function formatRG(value: string | null = ''): string {
+  if (value === null) return '';
   return keepOnlyDigits(value)
     .replace(/(\d{2})(\d)/, '$1.$2')
     .replace(/(\d{3})(\d)/, '$1.$2')

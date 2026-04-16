@@ -3,12 +3,14 @@ import { keepOnlyDigits } from './keep-only-digits';
 export function createCurrencyFormatter(
   locale: Intl.LocalesArgument,
   currency: string,
-): Intl.NumberFormat['format'] {
-  return new Intl.NumberFormat(locale, {
+): (value: number | null) => string {
+  const formatter = new Intl.NumberFormat(locale, {
     roundingMode: 'trunc',
     currency: currency,
     style: 'currency',
-  }).format;
+  });
+  return (value: number | null) =>
+    value === null ? '' : formatter.format(value);
 }
 
 export const formatCurrencyUSD = createCurrencyFormatter('en-US', 'USD');
