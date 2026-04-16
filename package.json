@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch"
   },
   "devDependencies": {
