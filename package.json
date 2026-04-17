@@ -6,7 +6,8 @@
   "scripts": {
     "start": "parcel index.html",
     "test": "vitest run",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
@@ -14,6 +15,7 @@
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.1.4",
     "jsdom": "^29.0.2",
     "parcel": "^2.16.4",
     "tsx": "^4.21.0",
@@ -23,5 +25,16 @@
   "dependencies": {
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
+  },
+  "vitest": {
+    "coverage": {
+      "provider": "c8",
+      "reportsDirectory": "coverage",
+      "reporter": [
+        "text",
+        "lcov",
+        "html"
+      ]
+    }
   }
 }
