@@ -16,4 +16,20 @@ describe('trimIndent', () => {
       ].join('\n'),
     );
   });
+
+  test('should preserve internal blank lines while trimming shared indentation', () => {
+    const string = trimIndent(`
+        line 1
+
+          line 2
+    `);
+
+    expect(string).toBe(
+      [
+        'line 1',
+        '',
+        '  line 2',
+      ].join('\n'),
+    );
+  });
 });

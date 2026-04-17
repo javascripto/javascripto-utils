@@ -55,4 +55,42 @@ describe('createMask', () => {
     expect(input.value).toBe('ABC');
     expect(setSelectionRangeCalls).toBe(0);
   });
+
+  test('should place cursor at zero when selectionStart is zero', () => {
+    const mask = createMask({
+      parse: value => value.replace(/\D/g, ''),
+      format: value => value.replace(/(\d{3})(\d)/, '$1-$2'),
+    });
+    const input = {
+      value: '1234',
+      selectionStart: 0,
+      setSelectionRange(start: number) {
+        input.selectionStart = start;
+      },
+    };
+
+    mask({ target: input } as never);
+
+    expect(input.value).toBe('123-4');
+    expect(input.selectionStart).toBe(0);
+  });
+
+  test('should default cursor to the end when selectionStart is null', () => {
+    const mask = createMask({
+      parse: value => value.replace(/\D/g, ''),
+      format: value => value.replace(/(\d{3})(\d)/, '$1-$2'),
+    });
+    const input = {
+      value: '1234',
+      selectionStart: null,
+      setSelectionRange(start: number) {
+        input.selectionStart = start;
+      },
+    };
+
+    mask({ target: input } as never);
+
+    expect(input.value).toBe('123-4');
+    expect(input.selectionStart).toBe(5);
+  });
 });

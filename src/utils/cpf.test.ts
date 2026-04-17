@@ -1,5 +1,6 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { CPF } from './cpf';
+import * as randomIntModule from './random-int';
 
 describe('CPF', () => {
   test('delegates formatting helpers', () => {
@@ -34,5 +35,15 @@ describe('CPF', () => {
 
     expect(generated).toMatch(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/);
     expect(CPF.isValid(generated)).toBe(true);
+  });
+
+  test('returns only the random base digits when no verifier pair is accepted', () => {
+    const randomIntSpy = vi.spyOn(randomIntModule, 'randomInt').mockReturnValue(1);
+    const isValidSpy = vi.spyOn(CPF, 'isValid').mockReturnValue(false);
+
+    expect(CPF.generate()).toBe('111111111');
+
+    randomIntSpy.mockRestore();
+    isValidSpy.mockRestore();
   });
 });
