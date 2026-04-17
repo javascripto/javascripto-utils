@@ -7,3 +7,4 @@ export * from './safe-await';
 export * from './suggest-email';
 export * from './trim-indent';
 export * from './wait';
+export * from './random-int';
