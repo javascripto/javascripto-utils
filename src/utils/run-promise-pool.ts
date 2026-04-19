@@ -126,6 +126,11 @@ export async function runPromisePool<T, E = Error>({
  * It is invoked after each task completion and can inspect results or errors.
  * If it returns `true`, no new tasks will be scheduled.
  *
+ * @param params.waitForSpace
+ * Optional async function that can be used to signal when it's safe to schedule
+ * more tasks, e.g. to manage memory usage for large task lists. It is invoked
+ * before starting a new task.
+ *
  * @param params.onTaskStart
  * Optional callback invoked when a task starts execution.
  *
@@ -175,6 +180,7 @@ export async function runPromisePoolAsync<T, E = Error>({
   // taskExecutionTimeout = Infinity,
   // // TODO: add option to stop executing new tasks based on a custom condition, e.g. a specific result or error is encountered
   // stopWhen,
+  waitForSpace,
   onTaskStart,
   onTaskComplete,
   onRunningTaskChange,
@@ -185,14 +191,16 @@ export async function runPromisePoolAsync<T, E = Error>({
   // errorCountLimit?: number;
   // taskExecutionTimeout?: number;
   // stopWhen?: ((completedResult: CompletedResult<T, E>) => void) | undefined;
+  waitForSpace?: () => Promise<void>;
   onTaskStart?: ((index: number) => void) | undefined;
   onRunningTaskChange?: ((executingCount: number) => void) | undefined;
   onTaskComplete?: (competedResult: CompletedResult<T, E>) => void;
 }): Promise<void> {
   const executing: Set<Promise<void>> = new Set();
   for (const [index, task] of tasks.entries()) {
-    onTaskStart?.(index);
+    await waitForSpace?.();
 
+    onTaskStart?.(index);
     const promise: Promise<void> = task()
       .then(result => onTaskComplete?.({ index, result, error: undefined }))
       .catch(error => onTaskComplete?.({ index, result: undefined, error }))
