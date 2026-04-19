@@ -58,7 +58,7 @@ export async function* runPromisePoolStream<T, E = Error>({
         }
         yield item;
       } else if (completed) break;
-      else await wait(); // async wait to avoid blocking the event loop
+      else await wait(0); // async wait to avoid blocking the event loop
     }
     if (runnerError) throw runnerError;
   } finally {
