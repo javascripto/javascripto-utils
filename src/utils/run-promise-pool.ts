@@ -20,6 +20,7 @@ export async function runPromisePool<T, E = Error>({
   errorsCountLimit = Infinity,
   taskExecutionTimeout = undefined,
   stopWhen,
+  signal,
   onTaskStart,
   onRunningTaskChange,
 }: {
@@ -30,6 +31,7 @@ export async function runPromisePool<T, E = Error>({
   errorsCountLimit?: number;
   taskExecutionTimeout?: number;
   stopWhen?: (completedResult: CompletedResult<T, E>) => boolean;
+  signal?: AbortSignal;
   onTaskStart?: (index: number) => void;
   onRunningTaskChange?: (executingCount: number) => void;
 }): Promise<{
@@ -51,6 +53,7 @@ export async function runPromisePool<T, E = Error>({
     failFast,
     errorsCountLimit,
     taskExecutionTimeout,
+    signal,
     stopWhen,
     onTaskStart,
     onRunningTaskChange,

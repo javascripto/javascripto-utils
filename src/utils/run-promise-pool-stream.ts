@@ -11,11 +11,13 @@ export async function* runPromisePoolStream<T, E = Error>({
   bufferLimit,
   concurrencyLimit = BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND,
   onBufferLimitReached,
+  signal,
 }: {
   tasks: Task<T>[];
   bufferLimit?: number;
   concurrencyLimit?: number;
   onBufferLimitReached?: () => void;
+  signal?: AbortSignal;
 }): AsyncGenerator<CompletedResult<T, E>> {
   let completed = false;
   let runnerError: E | undefined;
@@ -35,6 +37,7 @@ export async function* runPromisePoolStream<T, E = Error>({
     tasks,
     concurrencyLimit,
     waitForSpace,
+    signal,
     onTaskComplete: ({ index, result, error }) =>
       queue.push({ index, result, error } as CompletedResult<T, E>),
   })
