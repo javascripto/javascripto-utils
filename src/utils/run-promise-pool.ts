@@ -189,7 +189,7 @@ export async function runPromisePoolAsync<T, E = Error>({
   onRunningTaskChange?: ((executingCount: number) => void) | undefined;
   onTaskComplete?: (competedResult: CompletedResult<T, E>) => void;
 }): Promise<void> {
-  const executing: Promise<void>[] = [];
+  const executing: Set<Promise<void>> = new Set();
   for (const [index, task] of tasks.entries()) {
     onTaskStart?.(index);
 
@@ -197,15 +197,14 @@ export async function runPromisePoolAsync<T, E = Error>({
       .then(result => onTaskComplete?.({ index, result, error: undefined }))
       .catch(error => onTaskComplete?.({ index, result: undefined, error }))
       .finally(() => {
-        const indexOfPromise = executing.indexOf(promise);
-        if (indexOfPromise !== -1) executing.splice(indexOfPromise, 1);
-        onRunningTaskChange?.(executing.length);
+        if (executing.has(promise)) executing.delete(promise);
+        onRunningTaskChange?.(executing.size);
       });
 
-    executing.push(promise);
-    onRunningTaskChange?.(executing.length);
+    executing.add(promise);
+    onRunningTaskChange?.(executing.size);
 
-    if (executing.length >= concurrencyLimit) {
+    if (executing.size >= concurrencyLimit) {
       await Promise.race(executing);
     }
   }
