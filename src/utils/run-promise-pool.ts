@@ -222,7 +222,7 @@ export async function runPromisePoolAsync<T, E = Error>({
   tasks,
   failFast = false,
   errorsCountLimit = Infinity,
-  taskExecutionTimeout = Infinity,
+  taskExecutionTimeout,
   stopWhen,
   waitForSpace,
   onTaskStart,
@@ -234,7 +234,7 @@ export async function runPromisePoolAsync<T, E = Error>({
   failFast?: boolean;
   errorsCountLimit?: number;
   taskExecutionTimeout?: number | undefined;
-  stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined;
+  stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined; // FIXME: nõa funcionar porque shouldStop é local e checado antes da resolução da promise
   waitForSpace?: () => Promise<void>;
   onTaskStart?: ((index: number) => void) | undefined;
   onRunningTaskChange?: ((executingCount: number) => void) | undefined;
@@ -243,9 +243,9 @@ export async function runPromisePoolAsync<T, E = Error>({
   let totalErrors = 0;
   const executing: Set<Promise<void>> = new Set();
 
+  let shouldStop = false;
   for (const [index, task] of tasks.entries()) {
     await waitForSpace?.();
-    let shouldStop = false;
 
     onTaskStart?.(index);
 
