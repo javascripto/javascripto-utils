@@ -97,14 +97,18 @@ export type CompletedResult<T, E = Error> =
  * ```
  */
 export async function runPromisePoolAsync<T, E = Error>({
-  concurrencyLimit,
+  // basic required options
   tasks,
+  concurrencyLimit,
+  // abortion and error handling options
+  signal,
   failFast = false,
   errorsCountLimit = Infinity,
   taskExecutionTimeout,
-  signal,
   stopWhen,
+  // advanced options for better memory management with large task lists
   waitForSpace,
+  // lifecycle callbacks
   onTaskStart,
   onTaskComplete,
   onRunningTaskChange,
@@ -150,13 +154,13 @@ export async function runPromisePoolAsync<T, E = Error>({
       controller.signal,
     )
       .then(result => {
-        onTaskComplete?.({ index, result, error: undefined });
-        shouldStop = stopWhen?.({ index, result, error: undefined }) ?? false;
+        onTaskComplete?.({ index, result });
+        shouldStop = stopWhen?.({ index, result }) ?? false;
         if (shouldStop) controller.abort();
       })
       .catch(error => {
-        onTaskComplete?.({ index, result: undefined, error });
-        shouldStop = stopWhen?.({ index, result: undefined, error }) ?? false;
+        onTaskComplete?.({ index, error });
+        shouldStop = stopWhen?.({ index,  error }) ?? false;
         if (shouldStop) controller.abort();
         if (failFast) {
           controller.abort();

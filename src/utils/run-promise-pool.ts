@@ -9,19 +9,24 @@ import {
 // - add demo with progress bar line, execution time, error count, running tasks count, last tasked completed, execution list
 // - add benchmarks comparing different concurrency limits and ordering options, with various task durations and error rates
 // - write tests covering various scenarios, including edge cases like all tasks failing, all tasks succeeding, mix of fast and slow tasks, etc.
-// Add description and jsdocs
+// - add description and jsdocs
 
 // High memory usage for large task lists, as it waits for all tasks to complete
 export async function runPromisePool<T, E = Error>({
+  // basic required options
   tasks,
-  ordering = 'sorted',
   concurrencyLimit = BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND,
+  // result ordering options
+  ordering = 'sorted',
+  // abortion and error handling options
+  signal,
   failFast = false,
   errorsCountLimit = Infinity,
   taskExecutionTimeout = undefined,
   stopWhen,
-  signal,
+  // lifecycle callbacks
   onTaskStart,
+  onTaskComplete,
   onRunningTaskChange,
 }: {
   tasks: Task<T>[];
@@ -33,6 +38,7 @@ export async function runPromisePool<T, E = Error>({
   stopWhen?: (completedResult: CompletedResult<T, E>) => boolean;
   signal?: AbortSignal;
   onTaskStart?: (index: number) => void;
+  onTaskComplete?: (competedResult: CompletedResult<T, E>) => void;
   onRunningTaskChange?: (executingCount: number) => void;
 }): Promise<{
   results: Array<T | undefined>;
@@ -59,9 +65,11 @@ export async function runPromisePool<T, E = Error>({
     onRunningTaskChange,
     onTaskComplete: ({ index, result, error }: CompletedResult<T, E>) => {
       if (error) {
+        onTaskComplete?.({ index, error });
         if (ordering === 'completion') completionErrors.push(error as E);
         else sortedErrors[index] = error;
       } else if (result !== undefined) {
+        onTaskComplete?.({ index, result });
         if (ordering === 'completion') completionResults.push(result);
         else sortedResults[index] = result;
       }
