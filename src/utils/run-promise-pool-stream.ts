@@ -36,7 +36,6 @@ export async function* runPromisePoolStream<T, E = Error>({
   abortOnErrorsLimit?: boolean;
   taskExecutionTimeout?: number | undefined;
   stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined;
-  waitForSpace?: () => Promise<void>;
   onTaskStart?: ((index: number) => void) | undefined;
   onRunningTaskChange?: ((executingCount: number) => void) | undefined;
   onTaskComplete?: (completedResult: CompletedResult<T, E>) => void;
@@ -44,6 +43,17 @@ export async function* runPromisePoolStream<T, E = Error>({
   let completed = false;
   let runnerError: E | undefined;
   const queue: CompletedResult<T, E>[] = [];
+
+  // local controller used to abort the internal runner when the consumer
+  // stops the generator (via `return()` / cancellation).
+  const controller = new AbortController();
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else
+      signal.addEventListener('abort', () => controller.abort(), {
+        once: true,
+      });
+  }
 
   let resumeResolver: (() => void) | undefined;
   const waitForSpace = async () => {
@@ -59,7 +69,7 @@ export async function* runPromisePoolStream<T, E = Error>({
     tasks,
     concurrencyLimit,
     waitForSpace,
-    signal,
+    signal: controller.signal,
     failFast,
     errorsCountLimit,
     abortOnErrorsLimit,

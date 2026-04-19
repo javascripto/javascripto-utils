@@ -68,13 +68,13 @@ export async function runPromisePoolAndReturn<T, E = Error>({
     abortOnErrorsLimit,
     onTaskComplete: ({ index, result, error }: CompletedResult<T, E>) => {
       if (error) {
-        onTaskComplete?.({ index, error });
         if (ordering === 'completion') completionErrors.push(error);
         else sortedErrors[index] = error;
+        onTaskComplete?.({ index, error });
       } else if (result !== undefined) {
-        onTaskComplete?.({ index, result });
         if (ordering === 'completion') completionResults.push(result);
         else sortedResults[index] = result;
+        onTaskComplete?.({ index, result });
       }
     },
   });
