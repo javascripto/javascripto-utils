@@ -102,6 +102,7 @@ export async function runPromisePoolAsync<T, E = Error>({
   failFast = false,
   errorsCountLimit = Infinity,
   taskExecutionTimeout,
+  signal,
   stopWhen,
   waitForSpace,
   onTaskStart,
@@ -112,9 +113,9 @@ export async function runPromisePoolAsync<T, E = Error>({
   tasks: Task<T>[];
   failFast?: boolean;
   errorsCountLimit?: number;
-  taskExecutionTimeout?: number;
+  taskExecutionTimeout?: number | undefined;
+  stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined;
   signal?: AbortSignal | undefined;
-  stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined; // FIXME: não funcionar porque shouldStop é local e checado antes da resolução da promise
   waitForSpace?: () => Promise<void>;
   onTaskStart?: ((index: number) => void) | undefined;
   onRunningTaskChange?: ((executingCount: number) => void) | undefined;
@@ -123,10 +124,10 @@ export async function runPromisePoolAsync<T, E = Error>({
   let totalErrors = 0;
   // controller used to signal cancellation to tasks that respect AbortSignal
   const controller = new AbortController();
-  if (controller.signal) {
-    if (controller.signal.aborted) controller.abort();
+  if (signal) {
+    if (signal.aborted) controller.abort();
     else {
-      controller.signal.addEventListener('abort', () => controller.abort(), {
+      signal.addEventListener('abort', () => controller.abort(), {
         once: true,
       });
     }

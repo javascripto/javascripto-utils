@@ -5,11 +5,11 @@ import {
   type Task,
 } from './run-promise-pool-async';
 
-
 // TODO:
 // - add demo with progress bar line, execution time, error count, running tasks count, last tasked completed, execution list
 // - add benchmarks comparing different concurrency limits and ordering options, with various task durations and error rates
 // - write tests covering various scenarios, including edge cases like all tasks failing, all tasks succeeding, mix of fast and slow tasks, etc.
+// Add description and jsdocs
 
 // High memory usage for large task lists, as it waits for all tasks to complete
 export async function runPromisePool<T, E = Error>({
@@ -18,7 +18,7 @@ export async function runPromisePool<T, E = Error>({
   concurrencyLimit = BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND,
   failFast = false,
   errorsCountLimit = Infinity,
-  taskExecutionTimeout,
+  taskExecutionTimeout = undefined,
   stopWhen,
   onTaskStart,
   onRunningTaskChange,
@@ -51,6 +51,9 @@ export async function runPromisePool<T, E = Error>({
     failFast,
     errorsCountLimit,
     taskExecutionTimeout,
+    stopWhen,
+    onTaskStart,
+    onRunningTaskChange,
     onTaskComplete: ({ index, result, error }: CompletedResult<T, E>) => {
       if (error) {
         if (ordering === 'completion') completionErrors.push(error as E);
@@ -60,9 +63,6 @@ export async function runPromisePool<T, E = Error>({
         else sortedResults[index] = result;
       }
     },
-    stopWhen,
-    onTaskStart,
-    onRunningTaskChange,
   });
 
   if (ordering === 'sorted')
