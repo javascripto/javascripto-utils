@@ -8,8 +8,8 @@ import {
 } from '../constants/ansi-colors';
 import { wait } from '.';
 import { randomInt } from './random-int';
-import { runPromisePool, type Task } from './run-promise-pool';
-
+import { runPromisePool } from './run-promise-pool';
+import type { Task } from './run-promise-pool-async';
 
 function createRandomTimeTask(id: number, maxDelay: number): Task<number> {
   return async (): Promise<number> => {
@@ -39,9 +39,17 @@ async function main() {
   console.info(`${YELLOW}Starting tasks execution${RESET}`);
   await wait(1000);
 
+  let runningCount = 0;
+
   const { results: tasksResults, errors } = await runPromisePool({
     tasks,
     concurrencyLimit,
+    // taskExecutionTimeout: 49,
+    stopWhen: () => runningCount > 10, // stop when the task with index 1000 is completed
+    onTaskStart(index) {
+      runningCount++;
+      console.info({ runningCount });
+    },
   });
   const totalTime = Date.now() - now;
 
