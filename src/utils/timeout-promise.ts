@@ -1,8 +1,10 @@
+import { isNullOrUndefined } from './is-null-or-undefined';
+
 export function timeoutPromise<T = unknown>(
   promise: Promise<T>,
   milliseconds?: number | null | undefined,
 ): Promise<T> {
-  if (!milliseconds) return promise;
+  if (isNullOrUndefined(milliseconds)) return promise;
   return Promise.race([
     promise,
     new Promise<T>((_, reject) => {
