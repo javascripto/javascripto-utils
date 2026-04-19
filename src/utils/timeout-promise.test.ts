@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { timeoutPromise } from './timeout-promise';
 import { wait } from './wait';
+import { resolve } from 'node:dns';
 
 describe('timeoutPromise', () => {
   test('should resolve if the promise resolves before the timeout', async () => {
@@ -74,10 +75,11 @@ describe('timeoutPromise', () => {
   });
 
   test('should not reject with PromiseTimeoutError if the promise resolves just before the timeout', async () => {
-    const promise = wait(99).then(() => 'success');
+    const promise = new Promise(resolve => setTimeout(() => resolve('success'), 100))
     const result = await timeoutPromise(promise, 100);
     expect(result).toBe('success');
   });
+
 
   test('should reject with PromiseTimeoutError if the promise resolves just after the timeout', async () => {
     const promise = wait(101).then(() => 'success');

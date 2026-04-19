@@ -33,6 +33,23 @@ describe('runPromisePool', () => {
     });
 
     expect(results).toEqual(['instant', 'fast', 'slow']);
+    expect(errors).toEqual([]);
+  });
+
+  test('should results in sorted order when requested', async () => {
+    const tasks = [
+      async () => wait(20).then(() => 'slow'),
+      async () => wait(5).then(() => 'fast'),
+      async () => 'instant',
+    ];
+
+    const { results, errors } = await runPromisePool({
+      tasks,
+      concurrencyLimit: 3,
+      ordering: 'sorted',
+    });
+
+    expect(results).toEqual(['slow', 'fast', 'instant']);
     expect(errors).toEqual([undefined, undefined, undefined]);
   });
 
