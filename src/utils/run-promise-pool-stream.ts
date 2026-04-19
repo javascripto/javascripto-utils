@@ -7,17 +7,36 @@ import {
 import { wait } from './wait';
 
 export async function* runPromisePoolStream<T, E = Error>({
+  // basic required options
   tasks,
-  bufferLimit,
   concurrencyLimit = BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND,
+  // backpressure options
+  bufferLimit,
   onBufferLimitReached,
+  // abortion and error handling options
   signal,
+  failFast = false,
+  errorsCountLimit = Infinity,
+  taskExecutionTimeout,
+  stopWhen,
+  // lifecycle callbacks
+  onTaskStart,
+  onTaskComplete,
+  onRunningTaskChange,
 }: {
   tasks: Task<T>[];
-  bufferLimit?: number;
   concurrencyLimit?: number;
-  onBufferLimitReached?: () => void;
   signal?: AbortSignal;
+  bufferLimit?: number;
+  onBufferLimitReached?: () => void;
+  failFast?: boolean;
+  errorsCountLimit?: number;
+  taskExecutionTimeout?: number | undefined;
+  stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined;
+  waitForSpace?: () => Promise<void>;
+  onTaskStart?: ((index: number) => void) | undefined;
+  onRunningTaskChange?: ((executingCount: number) => void) | undefined;
+  onTaskComplete?: (completedResult: CompletedResult<T, E>) => void;
 }): AsyncGenerator<CompletedResult<T, E>> {
   let completed = false;
   let runnerError: E | undefined;
@@ -38,8 +57,16 @@ export async function* runPromisePoolStream<T, E = Error>({
     concurrencyLimit,
     waitForSpace,
     signal,
-    onTaskComplete: ({ index, result, error }) =>
-      queue.push({ index, result, error } as CompletedResult<T, E>),
+    failFast,
+    errorsCountLimit,
+    taskExecutionTimeout,
+    stopWhen,
+    onTaskStart,
+    onRunningTaskChange,
+    onTaskComplete: (completedResult: CompletedResult<T, E>) => {
+      onTaskComplete?.(completedResult);
+      queue.push(completedResult);
+    },
   })
     .catch((e: E) => (runnerError = e))
     .finally(() => (completed = true));
