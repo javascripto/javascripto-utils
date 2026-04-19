@@ -113,7 +113,7 @@ export async function runPromisePoolAsync<T, E = Error>({
   failFast?: boolean;
   errorsCountLimit?: number;
   taskExecutionTimeout?: number | undefined;
-  stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined; // FIXME: nõa funcionar porque shouldStop é local e checado antes da resolução da promise
+  stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined; // FIXME: não funcionar porque shouldStop é local e checado antes da resolução da promise
   waitForSpace?: () => Promise<void>;
   onTaskStart?: ((index: number) => void) | undefined;
   onRunningTaskChange?: ((executingCount: number) => void) | undefined;
