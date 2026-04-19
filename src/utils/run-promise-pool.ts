@@ -13,10 +13,62 @@ export const BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND = 300; // based on benchmark
 // - add type parameter for error type, and return typed errors in the results
 // - manage memory usage for very large task lists, e.g. by streaming results or using a generator for tasks instead of an array
 
-export async function* runPromisePoolStream<T, E = Error>(): AsyncGenerator<
-  | { type: 'result'; index: number; result: T }
-  | { type: 'error'; index: number; error: E }
-> {}
+export async function* runPromisePoolStream<T, E = Error>({
+  tasks,
+  bufferLimit,
+  concurrencyLimit = BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND,
+  onBufferLimitReached,
+}: {
+  tasks: Task<T>[];
+  bufferLimit?: number;
+  concurrencyLimit?: number;
+  onBufferLimitReached?: () => void;
+}): AsyncGenerator<CompletedResult<T, E>> {
+  let completed = false;
+  let runnerError: E | undefined;
+  const queue: CompletedResult<T, E>[] = [];
+
+  let resumeResolver: (() => void) | undefined;
+  const waitForSpace = async () => {
+    if (!bufferLimit) return;
+    if (queue.length < bufferLimit) return;
+    onBufferLimitReached?.();
+    await new Promise<void>(resolve => {
+      resumeResolver = resolve;
+    });
+  };
+
+  runPromisePoolAsync({
+    tasks,
+    concurrencyLimit,
+    waitForSpace,
+    onTaskComplete: ({ index, result, error }) =>
+      queue.push({ index, result, error } as CompletedResult<T, E>),
+  })
+    .catch((e: E) => (runnerError = e))
+    .finally(() => (completed = true));
+
+  try {
+    while (true) {
+      if (queue.length > 0) {
+        const item = queue.shift()!;
+        if (resumeResolver && bufferLimit && queue.length < bufferLimit) {
+          resumeResolver();
+          resumeResolver = undefined;
+        }
+        yield item;
+      } else if (completed) break;
+      else await wait(); // async wait to avoid blocking the event loop
+    }
+    if (runnerError) throw runnerError;
+  } finally {
+    if (resumeResolver) {
+      resumeResolver();
+      resumeResolver = undefined;
+    }
+  }
+}
+
 
 // High memory usage for large task lists, as it waits for all tasks to complete
 export async function runPromisePool<T, E = Error>({
