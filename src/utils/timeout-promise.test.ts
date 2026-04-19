@@ -89,4 +89,16 @@ describe('timeoutPromise', () => {
       expect((error as Error).message).toBe('Promise timed out after 100 milliseconds');
     }
   });
+
+  test('should not race if milliseconds is null', async () => {
+    const promise = wait(100).then(() => 'success');
+    const result = await timeoutPromise(promise, null);
+    expect(result).toBe('success');
+  })
+
+  test('should not race if milliseconds is undefined', async () => {
+    const promise = wait(100).then(() => 'success');
+    const result = await timeoutPromise(promise, undefined);
+    expect(result).toBe('success');
+  });
 });

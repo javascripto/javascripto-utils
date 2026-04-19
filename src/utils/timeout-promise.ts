@@ -1,8 +1,8 @@
-
 export function timeoutPromise<T = unknown>(
   promise: Promise<T>,
-  milliseconds: number,
+  milliseconds?: number | null | undefined,
 ): Promise<T> {
+  if (!milliseconds) return promise;
   return Promise.race([
     promise,
     new Promise<T>((_, reject) => {
