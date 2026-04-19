@@ -1,3 +1,4 @@
+import { timeoutPromise } from './timeout-promise';
 import { wait } from './wait';
 
 export type Task<T = unknown> = () => Promise<T>;
@@ -12,6 +13,7 @@ export const BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND = 300;
 // TODO:
 // - add demo with progress bar line, execution time, error count, running tasks count, last tasked completed, execution list
 // - add benchmarks comparing different concurrency limits and ordering options, with various task durations and error rates
+// - write tests covering various scenarios, including edge cases like all tasks failing, all tasks succeeding, mix of fast and slow tasks, etc.
 
 export async function* runPromisePoolStream<T, E = Error>({
   tasks,
@@ -68,7 +70,6 @@ export async function* runPromisePoolStream<T, E = Error>({
     }
   }
 }
-
 
 // High memory usage for large task lists, as it waits for all tasks to complete
 export async function runPromisePool<T, E = Error>({
@@ -219,10 +220,9 @@ export async function runPromisePool<T, E = Error>({
 export async function runPromisePoolAsync<T, E = Error>({
   concurrencyLimit,
   tasks,
-  // TODO: add timeout option for tasks that take too long, with error handling
-  taskExecutionTimeout = Infinity,
   failFast = false,
   errorsCountLimit = Infinity,
+  taskExecutionTimeout = Infinity,
   stopWhen,
   waitForSpace,
   onTaskStart,
@@ -248,7 +248,8 @@ export async function runPromisePoolAsync<T, E = Error>({
     let shouldStop = false;
 
     onTaskStart?.(index);
-    const promise: Promise<void> = task()
+
+    const promise: Promise<void> = timeoutPromise(task(), taskExecutionTimeout)
       .then(result => {
         onTaskComplete?.({ index, result, error: undefined });
         shouldStop = stopWhen?.({ index, result, error: undefined }) ?? false;
