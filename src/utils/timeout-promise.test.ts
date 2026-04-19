@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { timeoutPromise } from './timeout-promise';
+import { timeoutPromise, AbortError } from './timeout-promise';
 import { wait } from './wait';
 import { resolve } from 'node:dns';
 
@@ -101,6 +101,23 @@ describe('timeoutPromise', () => {
   test('should not race if milliseconds is undefined', async () => {
     const promise = wait(100).then(() => 'success');
     const result = await timeoutPromise(promise, undefined);
+    expect(result).toBe('success');
+  });
+
+  test('should reject with AbortError if signal is aborted before resolution', async () => {
+    const controller = new AbortController();
+    const promise = wait(100).then(() => 'success');
+    setTimeout(() => controller.abort(), 10);
+
+    await expect(timeoutPromise(promise, 200, controller.signal)).rejects.toBeInstanceOf(AbortError);
+  });
+
+  test('should resolve if promise resolves before signal abort', async () => {
+    const controller = new AbortController();
+    const promise = wait(10).then(() => 'success');
+    setTimeout(() => controller.abort(), 50);
+
+    const result = await timeoutPromise(promise, 200, controller.signal);
     expect(result).toBe('success');
   });
 });

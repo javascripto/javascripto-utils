@@ -3,7 +3,7 @@ import { timeoutPromise } from './timeout-promise';
 // based on benchmarks, but it may vary based on task duration and system resources
 export const BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND = 300;
 
-export type Task<T = unknown> = () => Promise<T>;
+export type Task<T = unknown> = (signal?: AbortSignal) => Promise<T>;
 
 export type CompletedResult<T, E = Error> =
   | { index: number; result: T; error?: undefined }
@@ -112,7 +112,8 @@ export async function runPromisePoolAsync<T, E = Error>({
   tasks: Task<T>[];
   failFast?: boolean;
   errorsCountLimit?: number;
-  taskExecutionTimeout?: number | undefined;
+  taskExecutionTimeout?: number;
+  signal?: AbortSignal | undefined;
   stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined; // FIXME: não funcionar porque shouldStop é local e checado antes da resolução da promise
   waitForSpace?: () => Promise<void>;
   onTaskStart?: ((index: number) => void) | undefined;
@@ -120,28 +121,50 @@ export async function runPromisePoolAsync<T, E = Error>({
   onTaskComplete?: (competedResult: CompletedResult<T, E>) => void;
 }): Promise<void> {
   let totalErrors = 0;
+  // controller used to signal cancellation to tasks that respect AbortSignal
+  const controller = new AbortController();
+  if (controller.signal) {
+    if (controller.signal.aborted) controller.abort();
+    else {
+      controller.signal.addEventListener('abort', () => controller.abort(), {
+        once: true,
+      });
+    }
+  }
+
   const executing: Set<Promise<void>> = new Set();
 
   let shouldStop = false;
   for (const [index, task] of tasks.entries()) {
+    if (shouldStop || controller.signal.aborted) break;
+
     await waitForSpace?.();
 
     onTaskStart?.(index);
 
-    const promise: Promise<void> = timeoutPromise(task(), taskExecutionTimeout)
+    const promise: Promise<void> = timeoutPromise(
+      // pass abort signal to the task so it can opt-in to cancellation
+      task(controller.signal),
+      taskExecutionTimeout,
+      controller.signal,
+    )
       .then(result => {
         onTaskComplete?.({ index, result, error: undefined });
         shouldStop = stopWhen?.({ index, result, error: undefined }) ?? false;
+        if (shouldStop) controller.abort();
       })
       .catch(error => {
         onTaskComplete?.({ index, result: undefined, error });
         shouldStop = stopWhen?.({ index, result: undefined, error }) ?? false;
+        if (shouldStop) controller.abort();
         if (failFast) {
+          controller.abort();
           throw new FailFastError(
             `Fail fast enabled, stopping execution due to error in task ${index}`,
           );
         }
         if (++totalErrors >= errorsCountLimit) {
+          controller.abort();
           throw new ErrorsCountLimitReachedError(
             `Error count limit reached: ${totalErrors}`,
           );
@@ -152,13 +175,16 @@ export async function runPromisePoolAsync<T, E = Error>({
         onRunningTaskChange?.(executing.size);
       });
 
-    if (shouldStop) break;
+    if (shouldStop || controller.signal.aborted) break;
 
     executing.add(promise);
     onRunningTaskChange?.(executing.size);
 
     if (executing.size >= concurrencyLimit) {
       await Promise.race(executing);
+      // checar novamente após aguardar uma conclusão: se `stopWhen` foi acionado
+      // por uma task que acabou de completar, devemos respeitar e parar o loop.
+      if (shouldStop || controller.signal.aborted) break;
     }
   }
   await Promise.all(executing);
