@@ -1,17 +1,17 @@
+import { wait } from './wait';
+
 export type Task<T = unknown> = () => Promise<T>;
 
 export type CompletedResult<T, E = Error> =
   | { index: number; result: T; error?: undefined }
   | { index: number; result?: undefined; error: E };
 
-export const BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND = 300; // based on benchmarks, but it may vary based on task duration and system resources
+// based on benchmarks, but it may vary based on task duration and system resources
+export const BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND = 300;
 
 // TODO:
-// - add support for task cancellation, with a way to signal cancellation and handle it in the tasks
 // - add demo with progress bar line, execution time, error count, running tasks count, last tasked completed, execution list
 // - add benchmarks comparing different concurrency limits and ordering options, with various task durations and error rates
-// - add type parameter for error type, and return typed errors in the results
-// - manage memory usage for very large task lists, e.g. by streaming results or using a generator for tasks instead of an array
 
 export async function* runPromisePoolStream<T, E = Error>({
   tasks,
@@ -75,22 +75,22 @@ export async function runPromisePool<T, E = Error>({
   tasks,
   ordering = 'sorted',
   concurrencyLimit = BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND,
-  // failFast = false,
-  // errorCountLimit = Infinity,
-  // taskExecutionTimeout = Infinity,
-  // stopWhen,
-  // onTaskStart,
-  // onRunningTaskChange,
+  failFast = false,
+  errorsCountLimit = Infinity,
+  taskExecutionTimeout,
+  stopWhen,
+  onTaskStart,
+  onRunningTaskChange,
 }: {
   tasks: Task<T>[];
   concurrencyLimit: number;
   ordering?: 'sorted' | 'completion';
-  // failFast?: boolean;
-  // errorCountLimit?: number;
-  // taskExecutionTimeout?: number;
-  // stopWhen?: (completedResult: CompletedResult<T, E>) => void;
-  // onTaskStart?: (index: number) => void;
-  // onRunningTaskChange?: (executingCount: number) => void;
+  failFast?: boolean;
+  errorsCountLimit?: number;
+  taskExecutionTimeout?: number;
+  stopWhen?: (completedResult: CompletedResult<T, E>) => boolean;
+  onTaskStart?: (index: number) => void;
+  onRunningTaskChange?: (executingCount: number) => void;
 }): Promise<{
   results: Array<T | undefined>;
   errors: Array<E | undefined>;
@@ -105,14 +105,11 @@ export async function runPromisePool<T, E = Error>({
   const sortedResults = ordering === 'sorted' ? results : [];
 
   await runPromisePoolAsync({
-    // required
     tasks,
     concurrencyLimit,
-    // // optional
-    // failFast,
-    // errorCountLimit,
-    // taskExecutionTimeout,
-    // required
+    failFast,
+    errorsCountLimit,
+    taskExecutionTimeout,
     onTaskComplete: ({ index, result, error }: CompletedResult<T, E>) => {
       if (error) {
         if (ordering === 'completion') completionErrors.push(error as E);
@@ -122,10 +119,9 @@ export async function runPromisePool<T, E = Error>({
         else sortedResults[index] = result;
       }
     },
-    // // optional
-    // stopWhen,
-    // onTaskStart,
-    // onRunningTaskChange,
+    stopWhen,
+    onTaskStart,
+    onRunningTaskChange,
   });
 
   if (ordering === 'sorted')
@@ -163,7 +159,7 @@ export async function runPromisePool<T, E = Error>({
  * Already running tasks are allowed to complete.
  * @default false
  *
- * @param params.errorCountLimit
+ * @param params.errorsCountLimit
  * Maximum number of errors allowed before stopping the execution of new tasks.
  * Once this limit is reached, no additional tasks will be started.
  * @default Infinity
@@ -199,7 +195,7 @@ export async function runPromisePool<T, E = Error>({
  * @remarks
  * - Tasks are executed concurrently (up to `concurrencyLimit`), not sequentially.
  * - The order of completion is not guaranteed and may differ from the input order.
- * - Early termination options (`failFast`, `errorCountLimit`, `stopWhen`)
+ * - Early termination options (`failFast`, `errorsCountLimit`, `stopWhen`)
  *   affect only the scheduling of new tasks, not the cancellation of tasks
  *   already in progress (unless explicitly implemented).
  * - Timeout and cancellation behavior depends on the underlying implementation.
@@ -223,15 +219,11 @@ export async function runPromisePool<T, E = Error>({
 export async function runPromisePoolAsync<T, E = Error>({
   concurrencyLimit,
   tasks,
-  //TODO: implement the following options:
-  // // TODO: add timeout option for tasks that take too long, with error handling
-  // failFast = false,
-  // // TODO: add option to stop executing new tasks if a certain number of errors occur, or if a specific error is encountered
-  // errorCountLimit = Infinity,
-  // // TODO: add timeout option for tasks that take too long, with error handling
-  // taskExecutionTimeout = Infinity,
-  // // TODO: add option to stop executing new tasks based on a custom condition, e.g. a specific result or error is encountered
-  // stopWhen,
+  // TODO: add timeout option for tasks that take too long, with error handling
+  taskExecutionTimeout = Infinity,
+  failFast = false,
+  errorsCountLimit = Infinity,
+  stopWhen,
   waitForSpace,
   onTaskStart,
   onTaskComplete,
@@ -239,27 +231,48 @@ export async function runPromisePoolAsync<T, E = Error>({
 }: {
   concurrencyLimit: number;
   tasks: Task<T>[];
-  // failFast?: boolean;
-  // errorCountLimit?: number;
-  // taskExecutionTimeout?: number;
-  // stopWhen?: ((completedResult: CompletedResult<T, E>) => void) | undefined;
+  failFast?: boolean;
+  errorsCountLimit?: number;
+  taskExecutionTimeout?: number | undefined;
+  stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined;
   waitForSpace?: () => Promise<void>;
   onTaskStart?: ((index: number) => void) | undefined;
   onRunningTaskChange?: ((executingCount: number) => void) | undefined;
   onTaskComplete?: (competedResult: CompletedResult<T, E>) => void;
 }): Promise<void> {
+  let totalErrors = 0;
   const executing: Set<Promise<void>> = new Set();
+
   for (const [index, task] of tasks.entries()) {
     await waitForSpace?.();
+    let shouldStop = false;
 
     onTaskStart?.(index);
     const promise: Promise<void> = task()
-      .then(result => onTaskComplete?.({ index, result, error: undefined }))
-      .catch(error => onTaskComplete?.({ index, result: undefined, error }))
+      .then(result => {
+        onTaskComplete?.({ index, result, error: undefined });
+        shouldStop = stopWhen?.({ index, result, error: undefined }) ?? false;
+      })
+      .catch(error => {
+        onTaskComplete?.({ index, result: undefined, error });
+        shouldStop = stopWhen?.({ index, result: undefined, error }) ?? false;
+        if (failFast) {
+          throw new FailFastError(
+            `Fail fast enabled, stopping execution due to error in task ${index}`,
+          );
+        }
+        if (++totalErrors >= errorsCountLimit) {
+          throw new ErrorsCountLimitReachedError(
+            `Error count limit reached: ${totalErrors}`,
+          );
+        }
+      })
       .finally(() => {
         if (executing.has(promise)) executing.delete(promise);
         onRunningTaskChange?.(executing.size);
       });
+
+    if (shouldStop) break;
 
     executing.add(promise);
     onRunningTaskChange?.(executing.size);
@@ -269,4 +282,20 @@ export async function runPromisePoolAsync<T, E = Error>({
     }
   }
   await Promise.all(executing);
+}
+
+export class FailFastError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FailFastError';
+    this.message = message;
+  }
+}
+
+export class ErrorsCountLimitReachedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ErrorsCountLimitReachedError';
+    this.message = message;
+  }
 }
