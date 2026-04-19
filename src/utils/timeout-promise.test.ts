@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { timeoutPromise, AbortError } from './timeout-promise';
+import { AbortError, timeoutPromise } from './timeout-promise';
 import { wait } from './wait';
-import { resolve } from 'node:dns';
 
 describe('timeoutPromise', () => {
   test('should resolve if the promise resolves before the timeout', async () => {
@@ -17,7 +16,9 @@ describe('timeoutPromise', () => {
       throw new Error('Expected timeoutPromise to reject');
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe('Promise timed out after 100 milliseconds');
+      expect((error as Error).message).toBe(
+        'Promise timed out after 100 milliseconds',
+      );
     }
   });
 
@@ -41,7 +42,9 @@ describe('timeoutPromise', () => {
       throw new Error('Expected timeoutPromise to reject');
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe('Promise timed out after 100 milliseconds');
+      expect((error as Error).message).toBe(
+        'Promise timed out after 100 milliseconds',
+      );
     }
   });
 
@@ -54,15 +57,26 @@ describe('timeoutPromise', () => {
       throw new Error('Expected timeoutPromise to reject');
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe('Promise timed out after 100 milliseconds');
+      expect((error as Error).message).toBe(
+        'Promise timed out after 100 milliseconds',
+      );
     }
-  })
+  });
 
   test('should handle multiple concurrent timeoutPromise calls correctly', async () => {
     const promises = [
-      timeoutPromise(wait(100).then(() => 'first'), 200),
-      timeoutPromise(wait(200).then(() => 'second'), 150),
-      timeoutPromise(wait(300).then(() => 'third'), 250),
+      timeoutPromise(
+        wait(100).then(() => 'first'),
+        200,
+      ),
+      timeoutPromise(
+        wait(200).then(() => 'second'),
+        150,
+      ),
+      timeoutPromise(
+        wait(300).then(() => 'third'),
+        250,
+      ),
     ];
 
     try {
@@ -70,16 +84,19 @@ describe('timeoutPromise', () => {
       throw new Error('Expected some promises to reject');
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe('Promise timed out after 150 milliseconds');
+      expect((error as Error).message).toBe(
+        'Promise timed out after 150 milliseconds',
+      );
     }
   });
 
   test('should not reject with PromiseTimeoutError if the promise resolves just before the timeout', async () => {
-    const promise = new Promise(resolve => setTimeout(() => resolve('success'), 100))
+    const promise = new Promise(resolve =>
+      setTimeout(() => resolve('success'), 100),
+    );
     const result = await timeoutPromise(promise, 100);
     expect(result).toBe('success');
   });
-
 
   test('should reject with PromiseTimeoutError if the promise resolves just after the timeout', async () => {
     const promise = wait(101).then(() => 'success');
@@ -88,7 +105,9 @@ describe('timeoutPromise', () => {
       throw new Error('Expected timeoutPromise to reject');
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe('Promise timed out after 100 milliseconds');
+      expect((error as Error).message).toBe(
+        'Promise timed out after 100 milliseconds',
+      );
     }
   });
 
@@ -96,7 +115,7 @@ describe('timeoutPromise', () => {
     const promise = wait(100).then(() => 'success');
     const result = await timeoutPromise(promise, null);
     expect(result).toBe('success');
-  })
+  });
 
   test('should not race if milliseconds is undefined', async () => {
     const promise = wait(100).then(() => 'success');
@@ -109,7 +128,9 @@ describe('timeoutPromise', () => {
     const promise = wait(100).then(() => 'success');
     setTimeout(() => controller.abort(), 10);
 
-    await expect(timeoutPromise(promise, 200, controller.signal)).rejects.toBeInstanceOf(AbortError);
+    await expect(
+      timeoutPromise(promise, 200, controller.signal),
+    ).rejects.toBeInstanceOf(AbortError);
   });
 
   test('should resolve if promise resolves before signal abort', async () => {
