@@ -1,9 +1,9 @@
 import {
   BEST_BENCHMARK_CONCURRENCY_LIMIT_FOUND,
   type CompletedResult,
-  runPromisePoolAsync,
+  runPromisePoolCore,
   type Task,
-} from './run-promise-pool-async';
+} from './run-promise-pool';
 import { wait } from './wait';
 
 export async function* runPromisePoolStream<T, E = Error>({
@@ -13,6 +13,8 @@ export async function* runPromisePoolStream<T, E = Error>({
   // backpressure options
   bufferLimit,
   onBufferLimitReached,
+  // behavior flags
+  abortOnErrorsLimit = false,
   // abortion and error handling options
   signal,
   failFast = false,
@@ -31,6 +33,7 @@ export async function* runPromisePoolStream<T, E = Error>({
   onBufferLimitReached?: () => void;
   failFast?: boolean;
   errorsCountLimit?: number;
+  abortOnErrorsLimit?: boolean;
   taskExecutionTimeout?: number | undefined;
   stopWhen?: ((completedResult: CompletedResult<T, E>) => boolean) | undefined;
   waitForSpace?: () => Promise<void>;
@@ -52,13 +55,14 @@ export async function* runPromisePoolStream<T, E = Error>({
     });
   };
 
-  runPromisePoolAsync({
+  runPromisePoolCore({
     tasks,
     concurrencyLimit,
     waitForSpace,
     signal,
     failFast,
     errorsCountLimit,
+    abortOnErrorsLimit,
     taskExecutionTimeout,
     stopWhen,
     onTaskStart,

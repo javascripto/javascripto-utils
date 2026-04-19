@@ -1,5 +1,5 @@
 import { randomInt } from './random-int';
-import type { Task } from './run-promise-pool-async';
+import type { Task } from './run-promise-pool';
 import { runPromisePoolStream } from './run-promise-pool-stream';
 import { wait } from './wait';
 
