@@ -1,5 +1,5 @@
 import type { StringInput } from '../types';
-import { isNullOrUndefined, normalizeStringInput } from '../utils';
+import { normalizeStringInput } from '../utils';
 
 export const CAR_PLATE_OLD_PLACEHOLDER = 'AAA-0000';
 export const CAR_PLATE_MERCOSUL_PLACEHOLDER = 'AAA0A00';
