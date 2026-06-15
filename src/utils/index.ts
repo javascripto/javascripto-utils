@@ -1,3 +1,4 @@
+export * from './cnpj';
 export * from './duration';
 export * from './is-null-or-undefined';
 export * from './memoize';
@@ -5,7 +6,11 @@ export * from './normalize-string-input';
 export * from './random-int';
 export * from './remove-primitive-values';
 export * from './retry-promise';
+export * from './run-promise-pool';
+export * from './run-promise-pool-and-return';
+export * from './run-promise-pool-stream';
 export * from './safe-await';
 export * from './suggest-email';
+export * from './timeout-promise';
 export * from './trim-indent';
 export * from './wait';

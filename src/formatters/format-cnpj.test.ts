@@ -6,8 +6,13 @@ describe('formatCNPJ', () => {
     expect(formatCNPJ('')).toBe('');
   });
 
-  test('should remove non-digit characters', () => {
-    expect(formatCNPJ('12a345b678c0001d95')).toBe('12.345.678/0001-95');
+  test('should remove invalid characters', () => {
+    expect(formatCNPJ('12!345@678#0001$95')).toBe('12.345.678/0001-95');
+  });
+
+  test('should format an alphanumeric CNPJ correctly', () => {
+    expect(formatCNPJ('12ABC34501DE35')).toBe('12.ABC.345/01DE-35');
+    expect(formatCNPJ('12.abc.345/01de-35')).toBe('12.ABC.345/01DE-35');
   });
 
   test('should format a CNPJ correctly', () => {
@@ -38,7 +43,13 @@ describe('formatCNPJ', () => {
 
   test('should parse a CNPJ correctly', () => {
     expect(parseCNPJ('12.345.678/0001-95')).toBe('12345678000195');
+    expect(parseCNPJ('12.ABC.345/01DE-35')).toBe('12ABC34501DE35');
     expect(parseCNPJ(null)).toBe('');
     expect(parseCNPJ(undefined)).toBe('');
+  });
+
+  test('should keep letters only before the verifier digits', () => {
+    expect(parseCNPJ('12.ABC.345/01DE-EF35')).toBe('12ABC34501DE35');
+    expect(formatCNPJ('12ABC34501DEEF35')).toBe('12.ABC.345/01DE-35');
   });
 });

@@ -74,6 +74,29 @@ describe('document masks', () => {
     ]);
   });
 
+  test('should build alphanumeric CNPJ mask while typing', async () => {
+    const input = renderMaskedInput('cnpj', cnpjMask);
+
+    const { snapshots } = await typeAndCollectSnapshots(input, '12abc34501de35');
+
+    expect(snapshots).toEqual([
+      '1',
+      '12',
+      '12.A',
+      '12.AB',
+      '12.ABC',
+      '12.ABC.3',
+      '12.ABC.34',
+      '12.ABC.345',
+      '12.ABC.345/0',
+      '12.ABC.345/01',
+      '12.ABC.345/01D',
+      '12.ABC.345/01DE',
+      '12.ABC.345/01DE-3',
+      '12.ABC.345/01DE-35',
+    ]);
+  });
+
   test('should build car plate mask while typing', async () => {
     const input = renderMaskedInput('plate', carPlateMask);
 
