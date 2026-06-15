@@ -80,7 +80,11 @@ describe('createMask', () => {
       parse: value => value.replace(/\D/g, ''),
       format: value => value.replace(/(\d{3})(\d)/, '$1-$2'),
     });
-    const input = {
+    const input: {
+      value: string;
+      selectionStart: number | null;
+      setSelectionRange(start: number): void;
+    } = {
       value: '1234',
       selectionStart: null,
       setSelectionRange(start: number) {
