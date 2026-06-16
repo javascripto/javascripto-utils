@@ -7,7 +7,8 @@
     "start": "parcel index.html",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "test:coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "benchmark:promise-pool": "tsx src/utils/run-promise-pool.benchmark.ts"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
