@@ -8,7 +8,7 @@ Colecao de utilitarios pequenos em TypeScript para formatacao, parsing, mascaras
 
 - `formatters`: CPF, CNPJ, CEP, telefone, moeda, numeros, datas e strings
 - `masks`: mascaras para inputs HTML, separadas por dominio
-- `utils`: helpers genericos como `wait`, `safeAwait`, `memoize` e `Duration`
+- `utils`: helpers genericos como `wait`, `safeAwait`, `memoize`, `Duration` e validadores de documentos
 - `constants`: regex e constantes compartilhadas
 
 ## Contratos padronizados
@@ -56,6 +56,9 @@ formatCPF('12345678901');
 
 formatCNPJ('12345678000195');
 // '12.345.678/0001-95'
+
+formatCNPJ('12ABC34501DE35');
+// '12.ABC.345/01DE-35'
 
 formatCEP('12345678');
 // '12345-678'
@@ -114,7 +117,16 @@ Mascaras disponiveis hoje:
 ### Utils
 
 ```ts
-import { Duration, safeAwait, suggestEmail, wait } from './src';
+import { CNPJ, Duration, safeAwait, suggestEmail, wait } from './src';
+
+CNPJ.isValid('12.ABC.345/01DE-35');
+// true
+
+CNPJ.create('12.ABC.345/01DE-35');
+// '12ABC34501DE35'
+
+CNPJ.generate();
+// CNPJ alfanumerico valido para testes
 
 const duration = Duration.fromTimeString('01:02:03');
 duration.inSeconds;
@@ -163,19 +175,64 @@ npm install
 npm start
 npm test
 npm run test:watch
+npm run coverage
+npm run benchmark:promise-pool
 ```
 
 ## Testes
 
 O projeto usa duas abordagens de teste:
 
-- testes unitarios para `formatters`, `utils` e para o nucleo estrutural das mascaras
-- testes com Testing Library e `user-event` para mascaras sensiveis a cursor, backspace e setas direcionais
+- **Unitários**: para `formatters`, `utils` e o núcleo das máscaras (Vitest).
+- **DOM / integração**: com `@testing-library/*` e `@testing-library/user-event` para mascaras sensíveis a cursor, backspace e setas direcionais.
 
-Arquivos de mascara mais sensiveis sao testados em ambiente `jsdom`, simulando uso real em input HTML.
+Arquivos de máscara mais sensíveis são testados em ambiente `jsdom`, simulando uso real em elementos `input`.
 
-## Observacoes
+Gerar cobertura (relatório LCOV + resumo):
+
+```bash
+npm run coverage
+# ou diretamente
+npx vitest run --coverage
+```
+
+## Observações
 
 - o repositorio hoje esta configurado como pacote TypeScript interno
 - ainda nao ha empacotamento publico definido para distribuicao
 - o demo local pode ser executado com Parcel via `npm start`
+
+## Promise Pool (concorrência controlada)
+
+Executores de tarefas assíncronas com um limite de concorrência: no máximo `N`
+tarefas rodam ao mesmo tempo, e as próximas são agendadas conforme as anteriores
+terminam. A fonte de tarefas pode ser um array, `Iterable` ou `AsyncIterable`,
+permitindo consumir produtores grandes sob demanda. São três funções, todas
+sobre o mesmo núcleo:
+
+| Função | Retorno | Use quando |
+|---|---|---|
+| `runPromisePoolAndReturn` | `{ results, errors }` | quer todos os resultados no fim, indexados (tipo `Promise.allSettled` com limite de concorrência) |
+| `runPromisePoolStream` | `AsyncGenerator` | quer processar cada resultado conforme conclui, com backpressure (`bufferLimit`) |
+| `runPromisePoolCore` (alias `runPromisePool`) | `void` | quer controle total e não quer guardar resultados em memória — você persiste cada item nos callbacks |
+
+```ts
+import { runPromisePoolAndReturn } from './src';
+
+const tasks = ids.map(id => async () => fetch(`/api/${id}`).then(r => r.json()));
+
+const { results, errors } = await runPromisePoolAndReturn({
+  tasks,
+  concurrencyLimit: 10,
+});
+// results[i] = valor da tarefa i (ou undefined se falhou); errors[i] = erro (ou undefined)
+```
+
+Todas suportam timeout por tarefa (`taskExecutionTimeout`), cancelamento
+externo (`signal`), retries (`retryCount`, `retryDelay`, `shouldRetry`), parada
+antecipada (`stopWhen`) e políticas de erro (`failFast`,
+`abortOnFailFast`, `errorsCountLimit` + `abortOnErrorsLimit`), além de callbacks
+de progresso (`onTaskStart`, `onTaskComplete`, `onRunningTaskChange`).
+
+**Guia completo** (diferenças, todas as opções, semântica de erro/cancelamento e
+exemplos): [src/utils/run-promise-pool.md](src/utils/run-promise-pool.md#L1).
