@@ -42,16 +42,16 @@ const paint = (code: string, text: string | number) =>
   useColor ? `${code}${text}${c.RESET}` : String(text);
 const seconds = (ms: number) => (ms / 1000).toFixed(3);
 
-console.log(
+console.info(
   `${c.BOLD}Promise Pool benchmark${c.RESET} — ${taskCount.toLocaleString()} tasks · ${taskDelayMs}ms cada · concorrências [${concurrencyLimits.join(', ')}]`,
 );
-console.log(
+console.info(
   paint(
     DIM,
     'Dica: tarefas são setTimeout puro (sem contenção real), então tempo ≈ N/C × delay.',
   ),
 );
-console.log('');
+console.info('');
 
 const rows: BenchmarkRow[] = [];
 
@@ -124,9 +124,9 @@ async function bench(
   const time = paint(BOLD, `${seconds(durationMs)} s`);
   if (tty) {
     process.stdout.write(`\r${ERASE_LINE}`);
-    console.log(`${paint(GREEN, '✓')} ${label}  →  ${time}`);
+    console.info(`${paint(GREEN, '✓')} ${label}  →  ${time}`);
   } else {
-    console.log(
+    console.info(
       `${scenario} concurrency=${concurrencyLimit} -> ${seconds(durationMs)} s`,
     );
   }
@@ -194,25 +194,25 @@ function renderRanking(allRows: BenchmarkRow[]): void {
           ? c.YELLOW
           : c.DIM;
 
-  console.log('');
-  console.log(c.BOLD + 'Ranking (mais rápido primeiro)' + c.RESET);
+  console.info('');
+  console.info(c.BOLD + 'Ranking (mais rápido primeiro)' + c.RESET);
   const header = rowText(
     Object.fromEntries(columns.map(col => [col.key, col.title])),
   );
-  console.log(c.BOLD + header + c.RESET);
-  console.log(paint(DIM, '─'.repeat(header.length)));
+  console.info(c.BOLD + header + c.RESET);
+  console.info(paint(DIM, '─'.repeat(header.length)));
 
   for (const d of data) {
     const line = rowText(d);
     const colored = useColor ? `${rowColor(d.rank)}${line}${c.RESET}` : line;
     const medal = d.rank < 3 ? `  ${medals[d.rank]}` : '';
-    console.log(colored + medal);
+    console.info(colored + medal);
   }
 
   const top = ranked[0];
   if (top) {
-    console.log('');
-    console.log(
+    console.info('');
+    console.info(
       `${paint(GREEN, '🏆 Melhor:')} ${paint(BOLD, top.scenario)} @ concurrency=${top.concurrencyLimit} → ${paint(BOLD, `${seconds(top.durationMs)} s`)}`,
     );
   }
